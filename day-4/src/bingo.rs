@@ -100,25 +100,18 @@ impl From<Vec<String>> for Bingo {
 }
 
 impl Bingo {
-    pub fn get_first_board(&mut self) -> &Board {
+    pub fn get_first_last_boards(&mut self) -> (&Board, &Board) {
         let mut first_board: (i32, usize) = (self.numbers.len() as i32 + 1, 0);
-        for (i, board) in self.boards.iter_mut().enumerate() {
-            let moves = board.solve(&self.numbers);
-            if moves < first_board.0 {
-                first_board = (moves, i);
-            }
-        }
-        &self.boards[first_board.1]
-    }
-
-    pub fn get_last_board(&mut self) -> &Board {
         let mut last_board: (i32, usize) = (0, 0);
         for (i, board) in self.boards.iter_mut().enumerate() {
             let moves = board.solve(&self.numbers);
             if moves > last_board.0 {
                 last_board = (moves, i);
             }
+            if moves < first_board.0 {
+                first_board = (moves, i);
+            }
         }
-        &self.boards[last_board.1]
+        (&self.boards[first_board.1], &self.boards[last_board.1])
     }
 }

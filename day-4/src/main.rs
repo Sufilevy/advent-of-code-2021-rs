@@ -10,19 +10,9 @@ fn main() -> Result<(), Error> {
         .split("\n\n")
         .map(|e| e.to_owned())
         .collect::<Vec<String>>();
-    println!("{}", puzzle_one(&input));
-    println!("{}", puzzle_two(&input));
+    let mut bingo = Bingo::from(input);
+    let (first_board, last_board) = bingo.get_first_last_boards();
+    println!("{}", first_board.calculate_score());
+    println!("{}", last_board.calculate_score());
     Ok(())
-}
-
-fn puzzle_one(input: &Vec<String>) -> i32 {
-    let mut bingo = Bingo::from(input.to_owned());
-    let board = bingo.get_first_board();
-    board.calculate_score()
-}
-
-fn puzzle_two(input: &Vec<String>) -> i32 {
-    let mut bingo = Bingo::from(input.to_owned());
-    let board = bingo.get_last_board();
-    board.calculate_score()
 }
