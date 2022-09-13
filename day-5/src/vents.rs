@@ -1,33 +1,49 @@
 use ndarray::Array2;
 use std::cmp::Ordering;
 
-#[derive(Debug)]
+#[derive(Clone, Copy)]
 struct Point {
-    x: u32,
-    y: u32,
+    x: i32,
+    y: i32,
 }
 
 impl From<&str> for Point {
     fn from(input: &str) -> Self {
         let cords = input.split(',').collect::<Vec<_>>();
         Self {
-            x: cords[0].parse::<u32>().unwrap(),
-            y: cords[1].parse::<u32>().unwrap(),
+            x: cords[0].parse::<i32>().unwrap(),
+            y: cords[1].parse::<i32>().unwrap(),
         }
     }
 }
 
-#[derive(Debug)]
-enum Dir {
-    Hor,
-    Vert,
+impl PartialEq for Point {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y
+    }
 }
 
-#[derive(Debug)]
+enum Dir {
+    Pos,
+    Neg,
+    None,
+}
+
+impl Dir {
+    fn to_i32(&self) -> i32 {
+        match self {
+            Dir::Pos => 1,
+            Dir::Neg => -1,
+            Dir::None => 0,
+        }
+    }
+}
+
 pub struct Line {
     src: Point,
     dst: Point,
-    dir: Dir,
+    dir_x: Dir,
+    dir_y: Dir,
 }
 
 impl From<&String> for Line {
@@ -35,19 +51,24 @@ impl From<&String> for Line {
         let points = input.split(" -> ").collect::<Vec<_>>();
         let (p0, p1) = (Point::from(points[0]), Point::from(points[1]));
 
-        let (src, dst, dir) = match p0.x.cmp(&p1.x) {
-            Ordering::Less => (p0, p1, Dir::Hor),
-
-            Ordering::Equal => match p0.y.cmp(&p1.y) {
-                Ordering::Less => (p0, p1, Dir::Vert),
-                Ordering::Equal => (p0, p1, Dir::Vert),
-                Ordering::Greater => (p1, p0, Dir::Vert),
-            },
-
-            Ordering::Greater => (p1, p0, Dir::Hor),
+        let dir_x = match p0.x.cmp(&p1.x) {
+            Ordering::Less => Dir::Pos,
+            Ordering::Equal => Dir::None,
+            Ordering::Greater => Dir::Neg,
         };
 
-        Self { src, dst, dir }
+        let dir_y = match p0.y.cmp(&p1.y) {
+            Ordering::Less => Dir::Pos,
+            Ordering::Equal => Dir::None,
+            Ordering::Greater => Dir::Neg,
+        };
+
+        Self {
+            src: p0,
+            dst: p1,
+            dir_x,
+            dir_y,
+        }
     }
 }
 
@@ -61,46 +82,25 @@ pub struct Table(Array2<u32>);
 
 impl Table {
     const SIZE: usize = 989;
-    // const SIZE: usize = 12;
 
     pub fn fill_from(lines: Vec<Line>) -> Self {
         let mut table = Array2::zeros((Self::SIZE, Self::SIZE));
 
         for line in lines.iter() {
-            if line.src.x != line.dst.x && line.src.y != line.dst.y {
-                continue;
-            }
+            let mut pos = line.src;
+            while pos != line.dst {
+                *table.get_mut((pos.x as usize, pos.y as usize)).unwrap() += 1;
 
-            match line.dir {
-                Dir::Hor => {
-                    for p in table
-                        .row_mut(line.src.y as usize)
-                        .iter_mut()
-                        .take(line.dst.x as usize + 1)
-                        .skip(line.src.x as usize)
-                    {
-                        *p += 1
-                    }
-                }
-
-                Dir::Vert => {
-                    for p in table
-                        .column_mut(line.src.x as usize)
-                        .iter_mut()
-                        .take(line.dst.y as usize + 1)
-                        .skip(line.src.y as usize)
-                    {
-                        *p += 1
-                    }
-                }
+                pos.x += line.dir_x.to_i32();
+                pos.y += line.dir_y.to_i32();
             }
+            *table.get_mut((pos.x as usize, pos.y as usize)).unwrap() += 1;
         }
 
         Self(table)
     }
 
     pub fn count_dangerous_areas(&self) -> u32 {
-        // dbg!(&self.0);
         let mut areas = 0;
         for p in self.0.iter() {
             if *p >= 2 {
