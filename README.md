@@ -1,1 +1,1 @@
-Advent Of Code Challange 2021
+Advent Of Code Challange 2021 in Rust.
